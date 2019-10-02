@@ -87,12 +87,16 @@ def train_step_fn(sess, train_op, global_step,
     testcheck['excuted_actions'] = []
     testcheck['reachgoal'] = []
     cnt = 0
+    notwrite = True
+
     for i in range(iters):
         tt.tic()
 
         # Initialize the agent.
-        # init_env_state = agent.reset(rng_data[0], multi_target=['television', 'stand', 'desk', 'toilet'])
-        init_env_state = agent.reset(rng_data[0], single_target='sofa')
+        init_env_state = agent.reset(rng_data[0], multi_target=['television', 'stand', 'desk', 'toilet'])
+        # init_env_state = agent.reset(rng_data[0], single_target='sofa')
+        # Given
+        init_env_state = agent.startatPos([[-15, 15, 0]] * Z.batch_size)
         print(agent.epi.targets)
 
         # Get and process the common data.
@@ -111,6 +115,7 @@ def train_step_fn(sess, train_op, global_step,
         action_sample_wts = []
         states.append(init_env_state)
 
+        num_steps = 80
         for j in range(num_steps):
             f = agent.get_step_data()
             f['stop_gt_act_step_number'] = np.ones((1, 1, 1), dtype=np.int32) * j
@@ -141,30 +146,41 @@ def train_step_fn(sess, train_op, global_step,
                 # next_state, reward = agent.step(action)
                 # locs = f['loc_on_map']
 
-                if mode == 'test' and cnt < 10:
+                # if mode == 'test' and cnt < 30:
+                #
+                #     for btch in range(Z.batch_size):
+                #         target_loc = common_data[1][btch]; crnt_loc = f['loc_on_map'][btch]
+                #         xt = target_loc[0][0]; yt = target_loc[0][1]
+                #         xc = crnt_loc[0][0]; yc = crnt_loc[0][1]; orienc = crnt_loc[0][2]
+                #         # if abs(xt - xc) + abs(yt - yc) < 10 and orienc == 0:
+                #         if xc in range(-17, -12) and yc in range(10, 17) and \
+                #                 agent.epi.targets[btch] in {'television', 'stand', 'toilet'}:  # and orienc == 0:
+                #             testcheck['iter'] += [[i]]
+                #             testcheck['step'] += [[j]]
+                #             testcheck['localsmap'] += [[f['locsmap_{:d}'.format(_)][btch][0] for _ in range(len(agent.navi.map_orig_sizes))]]
+                #             testcheck['target'] += [agent.epi.targets[btch]]
+                #             testcheck['loc'] += [[xc, yc, orienc]]
+                #             testcheck['fr'] += [[outs[2][sc][btch] for sc in range(3)]]
+                #             testcheck['value'] += [[outs[3][sc][btch] for sc in range(3)]]
+                #             testcheck['excuted_actions'] += [action[btch]]
+                #             # testcheck['reachgoal'] += reachgoal
+                #
+                #             cnt += 1
+                #
+                if mode == 'test' and 30 >= cnt >= 20 and notwrite:
+                    pickle.dump(testcheck, open('%s/fr_value_124.pkl' % (logdir), 'wb'))
+                    notwrite = False
+                if mode == 'test' and notwrite:
 
-                    for btch in range(Z.batch_size):
-                        target_loc = common_data[1][btch]; crnt_loc = f['loc_on_map'][btch]
-                        xt = target_loc[0][0]; yt = target_loc[0][1]
-                        xc = crnt_loc[0][0]; yc = crnt_loc[0][1]; orienc = crnt_loc[0][2]
-                        # if abs(xt - xc) + abs(yt - yc) < 10 and orienc == 0:
-                        if xc in range(-2, 3) and yc in range(0, 11) and orienc == 0 and \
-                                agent.epi.targets[btch] == u'table_and_chair':
-                            testcheck['iter'] += [[i]]
-                            testcheck['step'] += [[j]]
-                            testcheck['localsmap'] += [[f['locsmap_{:d}'.format(_)][btch][0] for _ in range(len(agent.navi.map_orig_sizes))]]
-                            testcheck['target'] += [agent.epi.targets[btch]]
-                            testcheck['loc'] += [[xc, yc, orienc]]
-                            testcheck['fr'] += [[outs[2][sc][btch] for sc in range(3)]]
-                            testcheck['value'] += [[outs[3][sc][btch] for sc in range(3)]]
-                            testcheck['excuted_actions'] += [action[btch]]
-                            # testcheck['reachgoal'] += reachgoal
-
-                            cnt += 1
-
-                if mode == 'test' and 6 <= cnt <= 10:
-                    pickle.dump(testcheck, open('%s/fr_value_sofa.pkl' % (logdir), 'wb'))
-                    cnt += 1
+                    target_loc = common_data[1]; crnt_loc = f['loc_on_map']
+                    testcheck['step'] += [[j]]
+                    testcheck['localsmap'] += [[f['locsmap_{:d}'.format(_)] for _ in range(len(agent.navi.map_orig_sizes))]]
+                    testcheck['target'] = [agent.epi.targets]
+                    testcheck['loc'] += [crnt_loc]
+                    testcheck['fr'] += [outs[2]]
+                    testcheck['value'] += [outs[3]]
+                    testcheck['excuted_actions'] += [action]
+                    testcheck['targetloc'] = agent.epi.target_locs
 
                 # Step a batch of actions
                 next_state = agent.step(action)
@@ -175,8 +191,12 @@ def train_step_fn(sess, train_op, global_step,
                 action_sample_wts.append(action_sample_wt)
                 # net_state = dict(zip(Z.train_ops['state_names'], net_state))
                 # net_state_to_input.append(net_state)
+        if mode == 'test' and notwrite:
+            pickle.dump(testcheck, open('%s/fr_value_1234.pkl' % (logdir), 'wb'))
+            notwrite = False
 
         # Concatenate things together for training.
+
         # rewards = np.array(rewards).T
         # action_sample_wts = np.array(action_sample_wts).T
         # executed_actions = np.array(executed_actions).T
@@ -259,6 +279,12 @@ def train_step_fn(sess, train_op, global_step,
 
     return total_loss, should_stop
 
+
+def getTraj():
+    pass
+
+def getfrval(common_data, f, batch_size):
+    pass
 
 def setup_training(loss_op, initial_learning_rate, steps_per_decay,
                    learning_rate_decay, momentum, max_steps,

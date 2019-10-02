@@ -57,7 +57,7 @@ class Environment():
         self.smap = pickle.load(open('%s/planner_data/localsmaps_31.pkl' % self.dir, 'rb'))
         self.fmap = pickle.load(open('%s/planner_data/fmap.pkl' % self.dir, 'rb'))
         self.target_locs = pickle.load(open('%s/planner_data/targetlocs.pkl' % self.dir, 'rb'))
-        self.start_locs = pickle.load(open('%s/planner_data/startlocs.pkl' % self.dir, 'rb'))
+        # self.start_locs = pickle.load(open('%s/planner_data/startlocs.pkl' % self.dir, 'rb'))
         self.gt_loc_aseq = pickle.load(open('%s/planner_data/states_aseq.pkl' % self.dir, 'rb'))
         self.locs = self.gt_loc_aseq.keys()
 

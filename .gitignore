@@ -1,3 +1,5 @@
 tf_code/output
 output/*
 *.pyc
+playground
+.idea

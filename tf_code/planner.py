@@ -117,6 +117,7 @@ def setup_to_run(Z, args, is_training, batch_norm_is_training, summary_mode):
     '''
     for i in range(len(navi.map_crop_sizes)):
         map_crop_size = navi.map_crop_sizes[i]
+        # The scale annotation are reversed here.
         with tf.variable_scope('scale_{:d}'.format(i)):
 
             sh = [-1, map_crop_size, map_crop_size, navi.map_channels]
