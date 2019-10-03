@@ -1,5 +1,7 @@
 import os, cv2
 import pickle
+import shutil
+
 import numpy as np
 from matplotlib import pyplot as plt
 from src.navi_env import Environment
@@ -84,7 +86,7 @@ def show_trajectory(env, state_buffer, tar_loc, save_dir):
         pp.remove()
         pa.remove()
         curr_pos = state_buffer[i + 1]
-        if curr_pos[0] != prev_pos[0] or curr_pos[1] != prev_pos[1]:
+        if curr_pos[0] != tar_loc[0] or curr_pos[1] != tar_loc[1]:
             axes.plot([prev_pos[0], curr_pos[0]], [prev_pos[1], curr_pos[1]], color='b', linestyle='-',
                       linewidth=2)
             (dx, dy) = position_attribute(curr_pos)
@@ -94,6 +96,17 @@ def show_trajectory(env, state_buffer, tar_loc, save_dir):
             prev_pos = curr_pos
         else:
             break
+
+def rot(values, orien):
+    for _ in range(orien):
+        values = np.rot90(values, -1)
+
+    values = np.transpose(values, axes=(1, 0, 2))
+
+    for _ in range(orien):
+        values = np.rot90(values)
+
+    return values
 
 
 def visSmap(colormap, class2id, objs, locsmap, orien):
@@ -108,29 +121,27 @@ def visSmap(colormap, class2id, objs, locsmap, orien):
 
     # plt.imshow(np.transpose(locsmap_img, axes=(1, 0, 2)))
     # plt.show()
-    for _ in range(orien):
-        locsmap_img = np.rot90(locsmap_img, -1)
-
-    locsmap_img = np.transpose(locsmap_img, axes=(1, 0, 2))
-
-    for _ in range(orien):
-        locsmap_img = np.rot90(locsmap_img)
-
-    return locsmap_img
+    return rot(locsmap_img, orien)
 
 
 def visFrValSmap(colormap, class2id, objs, fr, val, locsmap, loc, showplt=False):
     print(loc)
     x, y, orien = loc
     r_sc_0, r_sc_1, r_sc_2 = fr[2], fr[1], fr[0]
-    r_sc_0_vis = np.transpose(np.mean(r_sc_0, axis=2, keepdims=True)[..., 0])
-    r_sc_1_vis = np.transpose(np.mean(r_sc_1, axis=2, keepdims=True)[..., 0])
-    r_sc_2_vis = np.transpose(np.mean(r_sc_2, axis=2, keepdims=True)[..., 0])
+    r_sc_0 = np.mean(r_sc_0, axis=2, keepdims=True)
+    r_sc_1 = np.mean(r_sc_1, axis=2, keepdims=True)
+    r_sc_2 = np.mean(r_sc_2, axis=2, keepdims=True)
+    r_sc_0_vis = rot(r_sc_0, orien)[..., 0]
+    r_sc_1_vis = rot(r_sc_1, orien)[..., 0]
+    r_sc_2_vis = rot(r_sc_2, orien)[..., 0]
 
     v_sc_0, v_sc_1, v_sc_2 = val[2], val[1], val[0]
-    v_sc_0_vis = np.transpose(np.max(v_sc_0, axis=2, keepdims=True)[..., 0])
-    v_sc_1_vis = np.transpose(np.max(v_sc_1, axis=2, keepdims=True)[..., 0])
-    v_sc_2_vis = np.transpose(np.max(v_sc_2, axis=2, keepdims=True)[..., 0])
+    v_sc_0 = np.max(v_sc_0, axis=2, keepdims=True)
+    v_sc_1 = np.max(v_sc_1, axis=2, keepdims=True)
+    v_sc_2 = np.max(v_sc_2, axis=2, keepdims=True)
+    v_sc_0_vis = rot(v_sc_0, orien)[..., 0]
+    v_sc_1_vis = rot(v_sc_1, orien)[..., 0]
+    v_sc_2_vis = rot(v_sc_2, orien)[..., 0]
 
     locsmap_0, locsmap_1, locsmap_2 = locsmap[0], locsmap[1], locsmap[2]
     vislocsmap_0 = visSmap(colormap, class2id, objs, locsmap_0, orien)
@@ -193,14 +204,14 @@ def visTrajFrValSmap(env, traj_record, savedir):
 
             else:
                 plt = visFrValSmap(colormap, class2id, objs, tar_fr[j], tar_val[j],
-                                   tar_locsmap[j], tar_state_loc[j], showplt=True)
+                                   tar_locsmap[j], tar_state_loc[j], showplt=False)
                 savepath = '%s/%s/frvalsmap' % (savedir, tar)
                 if not os.path.isdir(savepath):
                     os.makedirs(savepath)
                 plt.savefig('%s/%02d.png' % (savepath, j), dpi=300)
 
 
-def getTrajFrValSmap(houseid, navi, savedir, trajdir):
+def getTrajFrValSmap(houseid, navi, savedir, trajpath):
     # sourcedir = '/media/z/Data/Object_Searching/code/NewMethods/M1000'
     # outputdir = sourcedir + '/tf_code/output'
     # testonbench = outputdir + '/planner_multitar/test_on_bench'
@@ -209,9 +220,20 @@ def getTrajFrValSmap(houseid, navi, savedir, trajdir):
     # navi = Foo(batch_size=4, map_orig_sizes=[11, 21, 31],
     #            map_scales=[11, 21, 31], map_crop_sizes=[11] * 3, map_channels=26)
     # houseid = '5cf0e1e9493994e483e985c436b9d3bc'
-    traj = pickle.load(open('%s/fr_value_1234.pkl' % trajdir, 'rb'))
+    traj = pickle.load(open(trajpath, 'rb'))
     env = Environment(houseid, navi)
     visTrajFrValSmap(env, traj, savedir)
+
+
+def testvis():
+    navi = Foo(batch_size=4, map_orig_sizes=[11, 21, 31],
+               map_scales=[11, 21, 31], map_crop_sizes=[11] * 3, map_channels=26)
+    sourcedir = '/media/z/Data/Object_Searching/code/NewMethods/M1000'
+    outputdir = sourcedir + '/tf_code/output'
+    testonbench = outputdir + '/planner_multitar/test_on_bench'
+    savedir = sourcedir + '/output/traj_123wo1'
+    trajpath = testonbench + '/fr_value_123_wo1.pkl'
+    getTrajFrValSmap('5cf0e1e9493994e483e985c436b9d3bc',navi, savedir, trajpath)
 
 
 def resize_hconcat(img1, img2, dest_size):
@@ -220,14 +242,13 @@ def resize_hconcat(img1, img2, dest_size):
     return cv2.hconcat([newimg1, newimg2])
 
 
-def concatTraj_FrValSmap(sourcedir):
+def concatTraj_FrValSmap(pic_dir, ifdel=True):
     """
     Concatenate frvalsmap + gridtraj and save concatenated images
-    :param sourcedir: Source Root directory
+    pic_dir = sourcedir + '/output/traj'
+    :param pic_dir: Source Root directory + picture relative path
     :return: None
     """
-    pic_dir = sourcedir + '/output/traj'
-
     for dir in os.listdir(pic_dir):
         tar_dir = os.path.join(pic_dir, dir)
         frvalsmap_dir = os.path.join(tar_dir, 'frvalsmap')
@@ -244,3 +265,12 @@ def concatTraj_FrValSmap(sourcedir):
             concatimg = resize_hconcat(im1, im2, (1800, 1200))
             outpath = os.path.join(concat_dir, imgname)
             cv2.imwrite(outpath, concatimg)
+
+        if ifdel:
+            shutil.rmtree(frvalsmap_dir); shutil.rmtree(gridtraj_dir)
+
+
+def testconcat():
+    sourcedir = '/media/z/Data/Object_Searching/code/NewMethods/M1000'
+    pic_dir = sourcedir + '/output/traj_123wo1'
+    concatTraj_FrValSmap(pic_dir)
