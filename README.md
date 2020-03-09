@@ -1,5 +1,7 @@
 # VNwithSMap
 
+presentation is [here](https://github.com/es6rc/VNwithSemanticMap/blob/master/Demo/Pre.pdf)
+
 Visual Navigation in indoor environment with Top-down Semantic Map. 
 
 by taking advantage of [value iteration network](https://github.com/avivt/VIN), the action policy network is based on the value map generated.
