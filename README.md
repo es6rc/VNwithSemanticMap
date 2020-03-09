@@ -1,5 +1,20 @@
 # VNwithSMap
 
+Visual Navigation in indoor environment with Top-down Semantic Map. 
+
+by taking advantage of [value iteration network](https://github.com/avivt/VIN), the action policy network is based on the value map generated.
+
+### Semantic Map Visualization
+Each Semantic Map has a size of `H X W X C` where `H` and `W` stands for height and width, and `C` is the number of object categories. Each cell on Semantic Map has a vector of object occupancies.
+
+![image](https://github.com/es6rc/VNwithSemanticMap/blob/master/Demo/SMap.png)
+
+### Robot Pose Visualiaztion
+![image](https://github.com/es6rc/VNwithSemanticMap/blob/master/Demo/visualization.png)
+
+### Network
+![image](https://github.com/es6rc/VNwithSemanticMap/blob/master/Demo/Network.png)
+
 ## Preprocess
 
 ### Add patches to House3D dataset
